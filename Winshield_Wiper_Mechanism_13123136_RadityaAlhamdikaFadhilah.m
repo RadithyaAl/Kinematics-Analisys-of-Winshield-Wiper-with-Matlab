@@ -94,7 +94,7 @@ while t < max_time
     Theta2 = Theta2_initial + Omega2 * t; % Angular position of Link 2
     
     % persamaan untuk mendapatkan theta3 dan theta4. Untuk setiap nilai t
-    % dihitung secara numerik nilai theta3 dan theta4.
+    % dihitung secara numerik untuk mendapatkan nilai theta3 dan theta4.
     eqns = @(x) [
         L2 * cos(Theta2) + L3 * cos(x(1)) - d - O4B * cos(x(2)); % Equation 1 (X-axis)
         L2 * sin(Theta2) + L3 * sin(x(1)) - O4B * sin(x(2));     % Equation 2 (Y-axis)
