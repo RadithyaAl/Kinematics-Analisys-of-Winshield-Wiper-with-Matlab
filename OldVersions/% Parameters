@@ -1,0 +1,131 @@
+% Parameters
+L2 = 186; % Length of Link 2
+L3 = 2.9 * L2; % Length of Link 3
+O4B = 1.2 * L2; % Distance O4 to B
+O4C = 3.5 * L2; % Length of Link O4C
+BC = 4*L2
+d = 3 * L2; % Distance between pivots
+Omega2 = 6; % Angular velocity of Link 2 (rad/s)
+dt = 0.005; % Time step
+
+% Additional parameter for O4C angle (in radians)
+angleBC = acos((O4B^2 + O4C^2 - BC^2) / (2 * O4B * O4C)); % Angle in radians
+
+% Initial conditions
+t = 0; % Start time
+Theta3_guess = (3/2)*pi; % Initial guess for Theta3
+Theta4_guess = (3/2)*pi; % Initial guess for Theta4
+Theta3_past = 0;
+Theta4_past = 0;
+Omega3_past = 0;
+Omega4_past = 0;
+
+% Link equations
+Initial_Coordinate_L2 = [0; 0];
+
+% Figure setup for mechanism plotting
+figure(1);
+hold on;
+grid on;
+xlabel('X Position (mm)');
+ylabel('Y Position (mm)');
+title('Continuous Kinematics of the Mechanism');
+xlim([-1.5 * L2, 4.5 * L2]);
+ylim([-1.5 * L2, 1.5 * L2]);
+
+
+% Continuous simulation
+i = 0; % Initialize iteration counter
+max_time = 10; % Set maximum simulation time
+while t < max_time
+    % Update time and Theta2
+    t = t + dt;
+    Theta2 = (pi / 2) + Omega2 * t; % Angular position of Link 2
+    
+    % Define the system of equations for Theta3 and Theta4
+    eqns = @(x) [
+        L2 * cos(Theta2) + L3 * cos(x(1)) - d - O4B * cos(x(2)); % Equation 1 (X-axis)
+        L2 * sin(Theta2) + L3 * sin(x(1)) - O4B * sin(x(2));     % Equation 2 (Y-axis)
+    ];
+    
+    % Initial guess for [Theta3, Theta4]
+    initial_guess = [Theta3_guess, Theta4_guess];  % Start with an initial guess for Theta4 in the second quadrant
+
+    % Use fsolve to solve the system numerically
+    options = optimoptions('fsolve', 'Display', 'off');  % Turn off display
+    solution = fsolve(eqns, initial_guess, options);
+
+    % Extract Theta3 and Theta4 from the solution
+    Theta3 = solution(1);
+    Theta4 = solution(2);
+    
+    % Calculate omega 3 and 4 (correcting inequality comparison)
+    if Theta3_past ~= 0 && Theta4_past ~= 0
+        Omega3 = (Theta3 - Theta3_past) / dt;
+        Omega4 = (Theta4 - Theta4_past) / dt;
+    else
+        Omega3 = 0; % Initial value for Omega3
+        Omega4 = 0; % Initial value for Omega4
+    end
+
+    if Omega3_past ~= 0 && Omega4_past ~= 0
+        angular_acceleration3 = (Omega3 - Omega3_past) / dt;
+        angular_acceleration4 = (Omega4 - Omega4_past) / dt;
+    else
+        angular_acceleration3 = 0; % Initial value for Omega3
+        angular_acceleration4 = 0; % Initial value for Omega4
+    end
+
+    
+    % Update the coordinates using matrices
+    R1 = Initial_Coordinate_L2 + [L2 * cos(Theta2);
+                                  L2 * sin(Theta2)];
+    R3 = R1 + [L3 * cos(Theta3); 
+               L3 * sin(Theta3)];
+    R4 = [d; 0] + [O4B * cos(Theta4);
+                   O4B * sin(Theta4)];
+    R5 = [d; 0] + [O4C * cos(Theta4 - angleBC);
+                   O4C * sin(Theta4 - angleBC)];
+
+    % Plot the mechanism using the coordinates
+    figure(1); % Select figure1
+    cla;
+    plot([0, R1(1)], [0, R1(2)], 'b-', 'LineWidth', 2); % Link 2
+    plot([R1(1), R3(1)], [R1(2), R3(2)], 'r-', 'LineWidth', 2); % Link 3
+    plot([d, R4(1)], [0, R4(2)], 'm-', 'LineWidth', 2); % Link O4B
+    plot([d, R5(1)], [0, R5(2)], 'm-', 'LineWidth', 2); % Link O4C
+    plot([R4(1), R5(1)], [R4(2), R5(2)], 'm-', 'LineWidth', 2)
+
+    % Ensure proper scaling for plot
+    axis equal;
+
+
+    % check variabel
+    fprintf('Time = %.2f\n', t);
+    fprintf('Theta2 = %.2f\n', Omega2 * t);
+    fprintf('Theta3 = %.2f\n', Theta3);
+    fprintf('Theta4 = %.2f\n', Theta4);
+    fprintf('Theta3_guess = %.2f\n', Theta3_guess);
+    fprintf('Theta4_guess = %.2f\n', Theta4_guess);
+    fprintf('Theta3_past = %.2f\n', Theta3_past);
+    fprintf('Theta4_past = %.2f\n', Theta4_past);
+    fprintf('omega3 = %.2f\n', Omega3);
+    fprintf('omega4 = %.2f\n', Omega4);
+    fprintf('Angular_acceleration3= %.2f\n', angular_acceleration3);
+    fprintf('angular acceleration4 = %.2f\n', Omega4), angular_acceleration4;
+
+    
+    
+    
+
+    % Store the current values as the "previous" for next iteration
+    Theta3_past = Theta3;
+    Theta4_past = Theta4;
+    Omega3_past = Omega3;
+    Omega4_past = Omega4;
+
+
+    
+    % Pause for animation effect
+    pause(dt);
+end
